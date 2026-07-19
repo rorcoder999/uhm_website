@@ -1,0 +1,16 @@
+,mean_abs_shap_degC
+NDBI,0.9711942
+NDVI,0.38420188
+bldg_height_m,0.26298398
+dist_coast_km,0.24050988
+dist_water_km,0.17220688
+ALBEDO,0.13215064
+elev_m,0.12865224
+frac_tree,0.12864572
+ghsl_built_frac,0.10140025
+bldg_vol_m3,0.094011314
+frac_lowveg,0.07707567
+pop_per_cell,0.07127543
+frac_built,0.059876893
+frac_wetland,0.0354683
+frac_bare,0.009921277

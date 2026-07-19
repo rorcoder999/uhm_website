@@ -1,0 +1,6 @@
+feature,corr_all_pixels,corr_land_only,sign_flips
+NDVI,0.506,-0.6,True
+NDBI,-0.359,0.762,True
+ALBEDO,0.905,0.406,False
+NDWI,-0.803,0.461,True
+frac_built,0.444,0.365,False

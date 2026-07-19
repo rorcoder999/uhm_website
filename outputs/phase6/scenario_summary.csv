@@ -1,0 +1,6 @@
+scenario,treated_px,treated_km2,dLST_mean_treated,dLST_p10,dLST_p90,dLST_citywide_mean,pop_affected,dLST_popweighted_treated
+S1_cool_roofs,585162,526.6,-0.427,-0.922,-0.061,-0.1594,105227512,-0.395
+S2_urban_greening,509335,458.4,-1.086,-1.695,-0.6,-0.3527,92407392,-0.96
+S3_ennore_wetland,2857,2.6,-1.042,-1.562,-0.516,-0.0019,43002,-1.187
+S4_airport_pavement,4001,3.6,-1.139,-2.44,-0.276,-0.0029,130626,-0.64
+S5_combined,613935,552.5,-1.652,-2.464,-0.983,-0.6467,106549816,-1.481

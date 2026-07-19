@@ -1,0 +1,9 @@
+metric,value
+null_sd,7.877
+q95_hot,13.01
+q99_hot,18.323
+q95_cold,-12.937
+pct_land_hot95,3.065
+pct_land_hot99,0.771
+pct_land_cold95,7.205
+naive_pct_|z|>1.96,79.173
