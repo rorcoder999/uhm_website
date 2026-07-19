@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chennai Urban Heat — Results Console</title>
+<style>
+  :root{
+    --paper:#f4f6f8; --card:#ffffff; --ink:#141c26; --ink2:#4a5866;
+    --grid:#dce3ea; --line:#c3ccd6;
+    --t1:#57106e; --t2:#bc3754; --t3:#f98e09; --t4:#fcffa4;
+    --cool:#1f6f8b; --hot:#bc3754;
+    --mono:ui-monospace,"SF Mono","Cascadia Code",Consolas,"Liberation Mono",Menlo,monospace;
+    --body:system-ui,-apple-system,"Segoe UI",Roboto,Ubuntu,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  body{
+    background:var(--paper) ;
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),
+                     linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:28px 28px;
+    color:var(--ink); font-family:var(--body); line-height:1.55;
+  }
+  a{color:var(--cool)}
+  .mono{font-family:var(--mono)}
+
+  /* ---------- masthead: the dataset itself is the hero ---------- */
+  header{background:var(--card);border-bottom:1px solid var(--line);padding:34px 24px 0}
+  .mast{max-width:1140px;margin:0 auto}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:var(--ink2);text-transform:uppercase}
+  h1{font-family:var(--mono);font-weight:700;font-size:clamp(24px,3.4vw,40px);
+     letter-spacing:-.01em;margin:10px 0 6px}
+  .sub{color:var(--ink2);max-width:70ch;font-size:15px}
+  .thermo{position:relative;margin:26px 0 0;height:56px}
+  .thermo .bar{height:22px;border:1px solid var(--ink);
+    background:linear-gradient(90deg,#000004,#57106e,#bc3754,#f98e09,#fcffa4)}
+  .thermo .tick{position:absolute;top:26px;font-family:var(--mono);font-size:11px;color:var(--ink2);transform:translateX(-50%)}
+  .thermo .pin{position:absolute;top:-8px;transform:translateX(-50%);text-align:center}
+  .thermo .pin .flag{font-family:var(--mono);font-size:11px;background:var(--ink);color:#fff;
+    padding:2px 6px;white-space:nowrap}
+  .thermo .pin .stem{width:2px;height:38px;background:var(--ink);margin:0 auto}
+
+  /* ---------- shell ---------- */
+  .shell{max-width:1140px;margin:0 auto;display:grid;grid-template-columns:210px 1fr;gap:28px;padding:28px 24px 90px}
+  nav.rail{position:sticky;top:16px;align-self:start;font-family:var(--mono);font-size:12.5px}
+  nav.rail a{display:block;color:var(--ink2);text-decoration:none;padding:7px 10px;border-left:2px solid var(--line)}
+  nav.rail a.on{color:var(--ink);border-left-color:var(--t2);background:var(--card)}
+  nav.rail a:focus-visible{outline:2px solid var(--cool);outline-offset:2px}
+
+  section{margin:0 0 46px;scroll-margin-top:12px}
+  .sechead{display:flex;align-items:baseline;gap:14px;margin-bottom:14px}
+  .idx{font-family:var(--mono);font-size:12px;color:#fff;background:var(--ink);padding:3px 8px}
+  h2{font-family:var(--mono);font-size:20px;letter-spacing:.01em}
+  h2::after{content:"";display:block;width:64px;height:3px;margin-top:6px;
+    background:linear-gradient(90deg,var(--t1),var(--t3))}
+  .lede{max-width:78ch;color:var(--ink2);font-size:14.5px;margin-bottom:14px}
+  .lede b{color:var(--ink)}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:10px;margin:12px 0 16px}
+  .stat{background:var(--card);border:1px solid var(--line);padding:12px 14px}
+  .stat .v{font-family:var(--mono);font-size:22px;font-weight:700}
+  .stat .v.cool{color:var(--cool)} .stat .v.hot{color:var(--t2)}
+  .stat .k{font-size:11.5px;color:var(--ink2);letter-spacing:.04em;text-transform:uppercase;font-family:var(--mono)}
+
+  .figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px}
+  figure{background:var(--card);border:1px solid var(--line);padding:10px}
+  figure img{width:100%;height:auto;display:block}
+  figcaption{font-family:var(--mono);font-size:11.5px;color:var(--ink2);padding-top:8px}
+  .missing{display:flex;align-items:center;justify-content:center;height:210px;
+    border:1px dashed var(--line);color:var(--ink2);font-family:var(--mono);font-size:12px;text-align:center;padding:12px}
+
+  table{border-collapse:collapse;width:100%;background:var(--card);font-size:13.5px}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left}
+  th{font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink2)}
+  td.num{font-family:var(--mono);text-align:right}
+  td .neg{color:var(--cool);font-weight:600}
+
+  .panel{background:var(--card);border:1px solid var(--line);padding:16px}
+  .btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  button.tab{font-family:var(--mono);font-size:12.5px;padding:7px 12px;border:1px solid var(--ink);
+    background:var(--card);color:var(--ink);cursor:pointer}
+  button.tab[aria-pressed="true"]{background:var(--ink);color:#fff}
+  button.tab:focus-visible,input:focus-visible{outline:2px solid var(--cool);outline-offset:2px}
+
+  input[type=range]{width:100%;accent-color:var(--t2)}
+  .readout{font-family:var(--mono);font-size:14px}
+  .readout b{font-size:20px}
+  .note{font-size:12.5px;color:var(--ink2);border-left:3px solid var(--t3);
+    background:var(--card);padding:8px 12px;margin-top:12px}
+  ul.cav{max-width:80ch;font-size:14px;color:var(--ink2);padding-left:18px}
+  ul.cav li{margin-bottom:8px}
+  ul.cav b{color:var(--ink)}
+  @media(max-width:820px){.shell{grid-template-columns:1fr}nav.rail{position:static;display:flex;flex-wrap:wrap;gap:4px}
+    nav.rail a{border-left:none;border-bottom:2px solid var(--line)}}
+  @media print{nav.rail{display:none}.shell{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="mast">
+    <div class="eyebrow">Urban heat mitigation via physics-informed ML · Chennai AOI 80.05–80.35 E / 12.85–13.35 N</div>
+    <h1>Two million pixels. One cooling plan.</h1>
+    <p class="sub">Landsat 8/9 thermal payloads → driver attribution → monotonically-constrained
+      XGBoost → intervention scenarios → NSGA-II optimal placement. Every number below is
+      measured from this pipeline, not assumed.</p>
+    <div class="thermo" aria-label="Chennai summer land surface temperature scale">
+      <div class="bar"></div>
+      <span class="tick" style="left:4%">30 °C</span>
+      <span class="tick" style="left:29%">34</span>
+      <span class="tick" style="left:54%">38</span>
+      <span class="tick" style="left:79%">42</span>
+      <span class="tick" style="left:97%">46 °C</span>
+      <span class="pin" style="left:29.5%"><span class="flag">sea 29.8</span><span class="stem"></span></span>
+      <span class="pin" style="left:72%"><span class="flag">land mean 41.5</span><span class="stem"></span></span>
+      <span class="pin" style="left:88.5%"><span class="flag">airport 44.1</span><span class="stem"></span></span>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+<nav class="rail" aria-label="Sections">
+  <a href="#s0">00 · mission brief</a>
+  <a href="#s1">01 · hotspots</a>
+  <a href="#s2">02 · drivers</a>
+  <a href="#s3">03 · physics model</a>
+  <a href="#s4">04 · scenarios</a>
+  <a href="#s5">05 · optimal plan</a>
+  <a href="#s6">06 · aerospace</a>
+  <a href="#s7">07 · caveats</a>
+</nav>
+
+<main>
+
+<section id="s0">
+  <div class="sechead"><span class="idx">00</span><h2>Mission brief</h2></div>
+  <p class="lede">Seven summers of Landsat 8/9 Collection-2 thermal imagery (Mar–Jun 2019–2025),
+    composited over Greater Chennai at 30 m: <b>2,001,080 valid pixels</b>, of which
+    <b>1.57 M are land</b> after masking the Bay of Bengal and inland water (21.7 % of the AOI).
+    The Ennore–Manali industrial belt anchors the environmental-justice case; the airport anchors
+    the aerospace module; Guindy NP and Pallikaranai marsh serve as cool references.</p>
+  <div class="cards">
+    <div class="stat"><div class="v">30 m</div><div class="k">analysis grid</div></div>
+    <div class="stat"><div class="v hot">11.7 °C</div><div class="k">land − sea gap</div></div>
+    <div class="stat"><div class="v hot">44.1 °C</div><div class="k">airport zone LST</div></div>
+    <div class="stat"><div class="v cool">40.6 °C</div><div class="k">Guindy NP (cool ref)</div></div>
+  </div>
+  <div class="figs">
+    <figure><img src="outputs/phase3/figures/lst_land_only.png" alt="Land-only median summer LST map">
+      <figcaption>Median summer LST, land only. The airport wedge, the dense core and the
+      Ennore ash belt all read hot; lakes and reserve forest read dark.</figcaption></figure>
+    <figure><img src="outputs/figures/lst_anomaly_map.png" alt="LST anomaly map">
+      <figcaption>Anomaly vs vegetated reference: red = urban excess heat, blue = cool islands.</figcaption></figure>
+  </div>
+</section>
+
+<section id="s1">
+  <div class="sechead"><span class="idx">01</span><h2>Hotspots — corrected for autocorrelation</h2></div>
+  <p class="lede">The textbook Getis-Ord Gi* test assumes independent pixels; a temperature field is the
+    opposite, so it flagged <b>79.2 % of land</b> as "significant". We rebuilt the null with
+    <b>phase-randomised surrogate fields</b> — identical power spectrum, random cluster placement
+    (Theiler et&nbsp;al. 1992). The surrogate z-spread (7.88) nearly equals the observed (7.94):
+    the naive result was almost entirely generic smoothness.</p>
+  <div class="cards">
+    <div class="stat"><div class="v hot">79.2 %</div><div class="k">naive "significant"</div></div>
+    <div class="stat"><div class="v">3.06 %</div><div class="k">corrected · hot @95 %</div></div>
+    <div class="stat"><div class="v">10.9 km²</div><div class="k">extreme hot @99 %</div></div>
+    <div class="stat"><div class="v">43.9 / 40.2 %</div><div class="k">UTFVI best / worst</div></div>
+  </div>
+  <div class="figs">
+    <figure><img src="outputs/phase3/figures/gi_corrected_hotspots.png" alt="Corrected hotspot clusters">
+      <figcaption>Clusters that beat an equally-smooth random field — the defensible hotspots.</figcaption></figure>
+    <figure><img src="outputs/phase3/figures/gi_null_vs_observed.png" alt="Null vs observed Gi* histogram">
+      <figcaption>Observed vs surrogate-null Gi*: only the excess tail is signal.</figcaption></figure>
+    <figure><img src="outputs/phase3/figures/utfvi_classes.png" alt="UTFVI comfort classes">
+      <figcaption>UTFVI is bimodal: Chennai is thermally polarised — 619 km² Excellent
+      vs 567 km² Worst, almost nothing between.</figcaption></figure>
+  </div>
+</section>
+
+<section id="s2">
+  <div class="sechead"><span class="idx">02</span><h2>Drivers — and the trap we caught</h2></div>
+  <p class="lede">With sea pixels included, the data says vegetation <i>heats</i> the city
+    (corr +0.51). Remove water and the sign flips to −0.60 — a textbook
+    <b>Simpson's paradox</b> that would have inverted every conclusion. After the fix,
+    SHAP attribution on the constrained model ranks the true drivers:</p>
+  <table aria-label="Driver ranking">
+    <tr><th>rank</th><th>driver</th><th>mean |SHAP| (°C)</th><th>reading</th></tr>
+    <tr><td class="num">1</td><td>NDBI (built-up intensity)</td><td class="num">0.971</td><td>dominant, 2.5× the runner-up</td></tr>
+    <tr><td class="num">2</td><td>NDVI (vegetation)</td><td class="num">0.384</td><td>the main cooling lever</td></tr>
+    <tr><td class="num">3</td><td>building height (GHSL)</td><td class="num">0.263</td><td>morphology matters</td></tr>
+    <tr><td class="num">4</td><td>distance to coast</td><td class="num">0.241</td><td>sea-breeze gradient</td></tr>
+    <tr><td class="num">5</td><td>distance to water</td><td class="num">0.172</td><td>local water cooling</td></tr>
+    <tr><td class="num">6</td><td>albedo</td><td class="num">0.132</td><td>confounded — see 03</td></tr>
+  </table>
+  <div class="figs" style="margin-top:14px">
+    <figure><img src="outputs/phase3/figures/simpsons_paradox.png" alt="Simpson's paradox bar chart">
+      <figcaption>Same data, opposite physics: correlations before vs after the water mask.</figcaption></figure>
+    <figure><img src="outputs/phase3/figures/shap_landonly_constrained.png" alt="SHAP summary">
+      <figcaption>SHAP beeswarm, land-only constrained model.</figcaption></figure>
+  </div>
+</section>
+
+<section id="s3">
+  <div class="sechead"><span class="idx">03</span><h2>Physics-constrained model</h2></div>
+  <p class="lede">Scenario simulation is a <b>causal</b> question; a purely correlational model can
+    answer it backwards (bright surfaces in Chennai are hot bare ground, so raw ML learns
+    "albedo up → hotter"). We enforce monotone constraints from the surface-energy balance —
+    ∂LST/∂albedo ≤ 0, ∂LST/∂NDVI ≤ 0, likewise tree, low-veg and wetland cover — trading
+    3 points of R² for guaranteed physical sign on every intervention.</p>
+  <div class="cards">
+    <div class="stat"><div class="v">0.675</div><div class="k">spatial-CV R², unconstrained</div></div>
+    <div class="stat"><div class="v">0.642</div><div class="k">R², physics-constrained</div></div>
+    <div class="stat"><div class="v">1.40 °C</div><div class="k">spatial-CV RMSE</div></div>
+    <div class="stat"><div class="v">3 km</div><div class="k">CV block size (anti-leakage)</div></div>
+  </div>
+  <div class="figs">
+    <figure><img src="outputs/figures/cv_pred_vs_obs.png" alt="CV predicted vs observed">
+      <figcaption>Out-of-fold prediction, spatial blocks — no neighbouring-pixel leakage.</figcaption></figure>
+  </div>
+</section>
+
+<section id="s4">
+  <div class="sechead"><span class="idx">04</span><h2>Cooling scenarios</h2></div>
+  <p class="lede">Interventions are feature edits pushed through the constrained model. The albedo
+    edit is capped at 0.45 — inside the observed data range, so no extrapolation.
+    Populations use GHS-POP with mass-conserving rescale.</p>
+  <div class="panel">
+    <div class="btns" role="group" aria-label="Choose scenario">
+      <button class="tab" data-s="S1" aria-pressed="false">S1 cool roofs</button>
+      <button class="tab" data-s="S2" aria-pressed="true">S2 urban greening</button>
+      <button class="tab" data-s="S5" aria-pressed="false">S5 combined</button>
+    </div>
+    <div class="cards">
+      <div class="stat"><div class="v cool" id="sc-d">−1.09 °C</div><div class="k">ΔLST, treated mean</div></div>
+      <div class="stat"><div class="v" id="sc-a">458 km²</div><div class="k">area treated</div></div>
+      <div class="stat"><div class="v" id="sc-p">8.3 M</div><div class="k">people reached</div></div>
+      <div class="stat"><div class="v cool" id="sc-pw">−0.96 °C</div><div class="k">pop-weighted ΔLST</div></div>
+    </div>
+    <figure style="border:none;padding:0">
+      <img id="sc-img" src="outputs/phase6/figures/dLST_S2_urban_greening.png" alt="Scenario delta-LST map">
+      <figcaption id="sc-cap">S2 street greening: NDVI +0.20, tree cover +0.25 on built, low-NDVI cells.</figcaption>
+    </figure>
+  </div>
+  <table style="margin-top:14px" aria-label="All scenarios">
+    <tr><th>scenario</th><th>treated km²</th><th>ΔLST treated</th><th>people (corrected)</th></tr>
+    <tr><td>S1 cool roofs</td><td class="num">526.6</td><td class="num"><span class="neg">−0.43 °C</span></td><td class="num">9.47 M</td></tr>
+    <tr><td>S2 urban greening</td><td class="num">458.4</td><td class="num"><span class="neg">−1.09 °C</span></td><td class="num">8.32 M</td></tr>
+    <tr><td>S3 Ennore wetland</td><td class="num">2.6</td><td class="num"><span class="neg">−1.04 °C</span></td><td class="num">3.9 k</td></tr>
+    <tr><td>S4 airport pavement</td><td class="num">3.6</td><td class="num"><span class="neg">−1.14 °C</span></td><td class="num">11.8 k</td></tr>
+    <tr><td>S5 combined</td><td class="num">552.5</td><td class="num"><span class="neg">−1.65 °C</span></td><td class="num">9.59 M</td></tr>
+  </table>
+  <p class="note">Per treated pixel, greening out-cools cool roofs ~2.5× — consistent with the
+    driver ranking (NDVI ≫ albedo). Under S5 the Ennore zone cools −2.61 °C and the airport −4.04 °C.</p>
+</section>
+
+<section id="s5">
+  <div class="sechead"><span class="idx">05</span><h2>Optimal placement under budget</h2></div>
+  <p class="lede">Pixels aggregate to 300 m planning cells; each cell chooses
+    {none, roofs, greening, both}. NSGA-II searches the Pareto surface of
+    <b>total cooling × cost × hotspot equity</b> (cooling delivered inside corrected Tier-1
+    clusters). Cost assumptions — ₹250/m² roof coating, ₹2,500/tree at 150 trees/ha — are
+    config constants, stated and adjustable.</p>
+  <div class="panel">
+    <label for="bud" class="mono" style="font-size:12.5px">Budget explorer (greedy frontier, city-wide)</label>
+    <input type="range" id="bud" min="10" max="550" value="250" step="5"
+      aria-label="Budget in crore rupees">
+    <p class="readout">₹ <b id="bud-v">250</b> crore → <b id="bud-b">6.2</b> M person-°C cooled
+      <span style="color:var(--ink2)">· marginal value <span id="bud-m">14</span> k person-°C per crore</span></p>
+  </div>
+  <div class="cards" style="margin-top:14px">
+    <div class="stat"><div class="v">819</div><div class="k">cells in plan</div></div>
+    <div class="stat"><div class="v">807 / 9 / 3</div><div class="k">green / both / roofs</div></div>
+    <div class="stat"><div class="v">₹62.8 cr</div><div class="k">plan cost (saturates)</div></div>
+    <div class="stat"><div class="v cool">2.53 M</div><div class="k">person-°C delivered</div></div>
+  </div>
+  <div class="figs">
+    <figure><img src="outputs/phase7/greedy_budget_curve.png" alt="Greedy budget curve">
+      <figcaption>Diminishing returns: ₹50 cr→2.1, ₹100→3.6, ₹250→6.2, ₹500→8.0 M person-°C.</figcaption></figure>
+    <figure><img src="outputs/phase7/pareto_front.png" alt="NSGA-II Pareto front">
+      <figcaption>Pareto front over cooling/cost, coloured by hotspot-equity delivery.</figcaption></figure>
+    <figure><img src="outputs/phase7/optimal_plan_map.png" alt="Optimal plan map">
+      <figcaption>Where to act first: greening saturates the southern residential belt before
+      the budget binds; roofs enter only where planting can't.</figcaption></figure>
+  </div>
+  <p class="note"><b>The finding:</b> greening is so cost-dominant that it exhausts eligible land
+    (₹63 cr) before a ₹250 cr budget binds. Policy in one line — green until you run out of
+    plantable cells, then coat roofs in the unplantable core.</p>
+</section>
+
+<section id="s6">
+  <div class="sechead"><span class="idx">06</span><h2>Aerospace module</h2></div>
+  <p class="lede">This project is downstream payload exploitation: Landsat TIRS rides a
+    sun-synchronous orbit (fixed 10:30 crossing), ECOSTRESS rides the ISS at 51.6° inclination —
+    a precessing orbit that samples the diurnal cycle Landsat can't. The same radiative-transfer
+    and view-factor physics used here powers spacecraft thermal control; the coming ISRO–CNES
+    <b>TRISHNA</b> mission (~57 m thermal IR) is exactly the sensor this pipeline is built to feed.
+    And at ground level, heat is an aircraft-performance variable:</p>
+  <div class="panel">
+    <label for="aer" class="mono" style="font-size:12.5px">MAA apron cool-pavement — surface ΔLST (°C)</label>
+    <input type="range" id="aer" min="0" max="4" value="1.14" step="0.01"
+      aria-label="Apron surface temperature reduction in degrees Celsius">
+    <p class="readout">apron <b id="a-d">−1.14 °C</b> → near-surface air
+      <b id="a-t">−0.46 °C</b> → density altitude <b id="a-da">≈55 ft</b> recovered ·
+      takeoff ground roll <b id="a-to">≈0.5 %</b> shorter</p>
+    <p class="note">Couplings: ΔT<sub>air</sub> ≈ 0.4 × ΔLST; ~120 ft density altitude and
+      ~1 % ground roll per °C. First-order estimates — refine with runway met data.</p>
+  </div>
+</section>
+
+<section id="s7">
+  <div class="sechead"><span class="idx">07</span><h2>Caveats — stated, not hidden</h2></div>
+  <ul class="cav">
+    <li><b>LST ≠ air temperature.</b> Landsat measures the surface at ~10:30 IST; afternoon peaks and
+      night retention need the ECOSTRESS day/night extension.</li>
+    <li><b>Constrained ≠ fully causal.</b> Monotone constraints guarantee sign, not magnitude;
+      scenario ΔLST should be cross-checked against InVEST / SOLWEIG for pilot wards.</li>
+    <li><b>Cost figures are order-of-magnitude</b> config constants; the greening-saturation finding
+      is robust to them, the exact ₹63 cr is not.</li>
+    <li><b>NSGA-II candidate cap</b> (~1,000 best cells) limits its front to ≈₹65 cr; raise
+      <span class="mono">N_CAND</span> to 3000 to span the full budget axis. The greedy curve is city-wide.</li>
+    <li><b>Population</b> uses GHS-POP 2020 with a mass-conserving 100 m→30 m rescale
+      (earlier Phase-6 person-counts were ~11× inflated; corrected here).</li>
+  </ul>
+</section>
+
+</main>
+</div>
+
+<script>
+// ---- graceful figure fallback -------------------------------------------
+document.querySelectorAll("img").forEach(im=>{
+  im.addEventListener("error",()=>{
+    const d=document.createElement("div"); d.className="missing";
+    d.textContent="figure not found — expected at ./"+im.getAttribute("src")+
+      " (open this file from the project root after running the phase scripts)";
+    im.replaceWith(d);
+  });
+});
+
+// ---- scenario switcher (real Phase-6 numbers) ----------------------------
+const SC={
+ S1:{d:"−0.43 °C",a:"527 km²",p:"9.47 M",pw:"−0.40 °C",
+     img:"outputs/phase6/figures/dLST_S1_cool_roofs.png",
+     cap:"S1 cool roofs: albedo +0.25 (capped 0.45) on built cells."},
+ S2:{d:"−1.09 °C",a:"458 km²",p:"8.32 M",pw:"−0.96 °C",
+     img:"outputs/phase6/figures/dLST_S2_urban_greening.png",
+     cap:"S2 street greening: NDVI +0.20, tree cover +0.25 on built, low-NDVI cells."},
+ S5:{d:"−1.65 °C",a:"553 km²",p:"9.59 M",pw:"−1.48 °C",
+     img:"outputs/phase6/figures/dLST_S5_combined.png",
+     cap:"S5 combined: roofs + greening + airport pavement together."}};
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-pressed","false"));
+  b.setAttribute("aria-pressed","true");
+  const s=SC[b.dataset.s];
+  sc_d.textContent=s.d; sc_a.textContent=s.a; sc_p.textContent=s.p; sc_pw.textContent=s.pw;
+  const img=document.getElementById("sc-img");
+  if(img){img.src=s.img;} document.getElementById("sc-cap").textContent=s.cap;
+}));
+const sc_d=document.getElementById("sc-d"),sc_a=document.getElementById("sc-a"),
+      sc_p=document.getElementById("sc-p"),sc_pw=document.getElementById("sc-pw");
+
+// ---- budget explorer: interpolate the real greedy anchors ----------------
+const P=[[0,0],[50,2.1],[100,3.6],[250,6.2],[500,8.0],[550,8.05]];
+function interp(x){for(let i=1;i<P.length;i++){if(x<=P[i][0]){
+  const[a,b]=[P[i-1],P[i]];return b[1]+(a[1]-b[1])*(b[0]-x)/(b[0]-a[0]);}}return 8.05;}
+const bud=document.getElementById("bud");
+function updBud(){const x=+bud.value,y=interp(x),y2=interp(Math.min(x+10,550));
+  document.getElementById("bud-v").textContent=x;
+  document.getElementById("bud-b").textContent=y.toFixed(1);
+  document.getElementById("bud-m").textContent=Math.max(0,Math.round((y2-y)/10*1000));}
+bud.addEventListener("input",updBud); updBud();
+
+// ---- aerospace calculator ------------------------------------------------
+const aer=document.getElementById("aer");
+function updAer(){const d=+aer.value,t=0.4*d;
+  document.getElementById("a-d").textContent="−"+d.toFixed(2)+" °C";
+  document.getElementById("a-t").textContent="−"+t.toFixed(2)+" °C";
+  document.getElementById("a-da").textContent="≈"+Math.round(120*t)+" ft";
+  document.getElementById("a-to").textContent="≈"+(1*t).toFixed(1)+" %";}
+aer.addEventListener("input",updAer); updAer();
+
+// ---- rail highlight ------------------------------------------------------
+const links=[...document.querySelectorAll("nav.rail a")];
+const secs=links.map(a=>document.querySelector(a.getAttribute("href")));
+const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){
+  links.forEach(l=>l.classList.toggle("on",l.getAttribute("href")==="#"+e.target.id));}});},
+  {rootMargin:"-30% 0px -60% 0px"});
+secs.forEach(s=>io.observe(s));
+</script>
+</body>
+</html>
